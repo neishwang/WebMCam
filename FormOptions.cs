@@ -33,6 +33,17 @@ namespace WebMCam
             comboBoxImageFormat.Text = settings.ImageFormat;
             checkBoxAltWindowTracking.Checked = settings.AltWindowTracking;
             checkBoxRememberSize.Checked = settings.RememberSize;
+
+            // A FixedDialog cannot be dragged bigger to rescue clipped content, so
+            // take its size from what the layout actually measures at this DPI
+            // rather than from a value baked in at design time.
+            ClientSize = new Size(
+                Math.Max(ClientSize.Width, tableOptions.PreferredSize.Width),
+                tableOptions.PreferredSize.Height + panelButtons.PreferredSize.Height);
+
+            // And pin that as a floor, so nothing can shrink the dialog back under
+            // its own content later.
+            MinimumSize = Size;
         }
 
         public string getFFmpegArguments()
