@@ -57,15 +57,109 @@ namespace WebMCam
         }
 
         /// <summary>
+        /// The sidebar lays itself out from the rendered font, but Margin/Padding are
+        /// raw pixels and the form is AutoScaleMode.None, so they have to be scaled by
+        /// hand for the spacing to look the same at 125%, 150%, 200%, ...
+        /// </summary>
+        private void scaleSpacingForDpi()
+        {
+            if (DeviceDpi == 96)
+                return;
+
+            var scale = DeviceDpi / 96f;
+
+            SuspendLayout();
+            scaleSpacing(tableSidebar, scale);
+            numericUpDownFramerate.Width = scaleValue(numericUpDownFramerate.Width, scale);
+            textBoxSize.Width = scaleValue(textBoxSize.Width, scale);
+            ResumeLayout(true);
+        }
+
+        private static void scaleSpacing(Control control, float scale)
+        {
+            control.Margin = scalePadding(control.Margin, scale);
+            control.Padding = scalePadding(control.Padding, scale);
+
+            if (!control.MinimumSize.IsEmpty)
+                control.MinimumSize = new Size(
+                    scaleValue(control.MinimumSize.Width, scale),
+                    scaleValue(control.MinimumSize.Height, scale));
+
+            foreach (Control child in control.Controls)
+                scaleSpacing(child, scale);
+        }
+
+        private static Padding scalePadding(Padding padding, float scale)
+        {
+            return new Padding(
+                scaleValue(padding.Left, scale), scaleValue(padding.Top, scale),
+                scaleValue(padding.Right, scale), scaleValue(padding.Bottom, scale));
+        }
+
+        private static int scaleValue(int value, float scale)
+        {
+            return (int)Math.Round(value * scale);
+        }
+
+        /// <summary>
+        /// Grow the window if the sidebar just gained a row (Pause, follow hint) that
+        /// no longer fits. MinimumSize only guarantees the idle layout, so that a small
+        /// capture region can still use a small window.
+        /// </summary>
+        private void ensureSidebarFits()
+        {
+            var needed = (Height - ClientSize.Height) + tableSidebar.PreferredSize.Height;
+
+            if (Height < needed)
+                Height = needed;
+        }
+
+        /// <summary>
+        /// Derive the minimum and default window size from what the sidebar actually
+        /// measures at the current DPI, instead of hardcoded pixels.
+        /// </summary>
+        private void applySizeConstraints()
+        {
+            var chromeWidth = Width - ClientSize.Width;
+            var chromeHeight = Height - ClientSize.Height;
+            var sidebar = tableSidebar.PreferredSize;
+
+            MinimumSize = new Size(
+                chromeWidth + sidebar.Width + LogicalToDeviceUnits(200),
+                chromeHeight + sidebar.Height);
+
+            ClientSize = new Size(
+                sidebar.Width + LogicalToDeviceUnits(400),
+                Math.Max(sidebar.Height, LogicalToDeviceUnits(320)));
+        }
+
+        /// <summary>
+        /// Keep the right-click sizing widgets pinned to the top-right of the preview.
+        /// They float over displayBox, which is docked, so they have no anchor to use.
+        /// </summary>
+        private void layoutSizeOverlay()
+        {
+            var gap = LogicalToDeviceUnits(6);
+
+            textBoxSize.Location = new Point(
+                displayBox.Right - textBoxSize.Width - gap,
+                displayBox.Top + gap);
+
+            buttonSizeSet.Location = new Point(
+                displayBox.Right - buttonSizeSet.Width - gap,
+                textBoxSize.Bottom + gap);
+        }
+
+        /// <summary>
         /// On MainForm Load
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private async void FormMain_Load(object sender, EventArgs e)
         {
-            FormMain_Resize(sender, e);
+            scaleSpacingForDpi();
+
             formOptions = new FormOptions();
-            await Updater.CheckAsync(linkGithub.Text);
 
             // Just to load in the settings
             formOptions.Opacity = 0;
@@ -73,12 +167,18 @@ namespace WebMCam
             formOptions.Hide();
             formOptions.Opacity = 100;
 
+            applySizeConstraints();
+
             // Remember window size
             var size = formOptions.getWindowSize();
             if (size.Height > 1 && size.Width > 1)
             {
                 Size = size;
             }
+
+            FormMain_Resize(sender, e);
+
+            await Updater.CheckAsync(linkGithub.Text);
 
             // Check for FFmpeg otherwise warn the user
             if (!File.Exists(Properties.Settings.Default.FFmpegPath))
@@ -123,6 +223,7 @@ namespace WebMCam
         private void FormMain_Resize(object sender, EventArgs e)
         {
             FormMain_Move(null, e);
+            layoutSizeOverlay();
             Text = string.Format("WebMCam [{0}x{1}]", displayBox.Size.Width, displayBox.Size.Height);
 
             if (displayBox.Size.Width > 1280 || displayBox.Size.Height > 720)
@@ -145,6 +246,7 @@ namespace WebMCam
             textBoxSize.Text = string.Format("{0}x{1}", displayBox.Width, displayBox.Height);
             textBoxSize.Visible = !textBoxSize.Visible;
             buttonSizeSet.Visible = !buttonSizeSet.Visible;
+            layoutSizeOverlay();
         }
 
         /// <summary>
@@ -191,6 +293,7 @@ namespace WebMCam
             {
                 // Set Text
                 buttonToggle.Text = "Stop";
+                buttonToggle.BackColor = Color.FromArgb(66, 66, 66);
                 buttonPause.Visible = true;
 
                 // Update Settings
@@ -225,6 +328,7 @@ namespace WebMCam
 
                 // Set Text
                 buttonToggle.Text = "Record";
+                buttonToggle.BackColor = Color.FromArgb(211, 47, 47);
                 buttonPause.Visible = false;
                 FormMain_Resize(sender, e);
                 TopMost = false;
@@ -338,6 +442,8 @@ namespace WebMCam
         private void checkBoxFollow_CheckedChanged(object sender, EventArgs e)
         {
             timerFollow.Enabled = checkBoxFollow.Checked;
+            labelFollowHint.Visible = checkBoxFollow.Checked;
+            ensureSidebarFits();
         }
 
         /// <summary>
@@ -417,12 +523,21 @@ namespace WebMCam
                 return;
             }
 
+            if (displayBox.Width < 1 || displayBox.Height < 1)
+                return;
+
             var borderWidth = SystemInformation.BorderSize.Width;
             var titleHeight = SystemInformation.CaptionHeight;
             var location = attach.Size();
 
-            Width = location.Width - location.X + 115;
-            Height = location.Height - location.Y + titleHeight;
+            // Everything the window costs on top of the preview: borders, caption,
+            // form padding and the sidebar. Measured rather than hardcoded, so it
+            // stays correct whatever the display scaling makes the sidebar.
+            var extraWidth = Width - displayBox.Width;
+            var extraHeight = Height - displayBox.Height;
+
+            Width = location.Width - location.X + extraWidth;
+            Height = location.Height - location.Y + extraHeight;
             Location = new Point(
                 location.X - borderWidth,
                 location.Y - titleHeight);
