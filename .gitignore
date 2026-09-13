@@ -247,3 +247,6 @@ _Pvt_Extensions
 # JetBrains Rider
 .idea/
 *.sln.iml
+# FFmpeg is not vendored: the release workflow fetches the latest build.
+# Drop your own copy next to the built exe (or set the path in Options) for local runs.
+ffmpeg.exe

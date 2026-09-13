@@ -180,7 +180,7 @@ namespace WebMCam
             await Updater.CheckAsync(linkGithub.Text);
 
             // Check for FFmpeg otherwise warn the user
-            if (!File.Exists(Properties.Settings.Default.FFmpegPath))
+            if (!File.Exists(FFmpeg.ResolvePath(Properties.Settings.Default.FFmpegPath)))
                 MessageBox.Show("FFmpeg.exe does not exist, nothing will work properly. Please specify it's location in Options. " +
                     Environment.NewLine + Environment.NewLine + "You can download it by clicking the FFmpeg link on the main form.",
                     "FFmpeg Missing!", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -272,7 +272,7 @@ namespace WebMCam
 
             Console.WriteLine(format);
 
-            formProcess.ffmpegPath = formOptions.getFFmpegPath();
+            formProcess.ffmpegPath = FFmpeg.ResolvePath(formOptions.getFFmpegPath());
             formProcess.ffmpegArguments = formOptions.getFFmpegArguments();
             formProcess.formatArguments(recorder.duration, "%d." + format,
                 recorder.fps, recorder.averageFps);
