@@ -122,6 +122,14 @@ namespace WebMCam
             Close();
         }
 
+        private void buttonCancel_Click(object sender, EventArgs e)
+        {
+            // Same outcome as closing the window: FormMain skips encoding and flushes
+            // the captured frames.
+            Result = false;
+            Close();
+        }
+
         private void listBoxFrames_KeyDown(object sender, KeyEventArgs e)
         {
             // Delete Key
