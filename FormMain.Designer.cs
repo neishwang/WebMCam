@@ -283,7 +283,7 @@ namespace WebMCam
             this.linkGithub.Name = "linkGithub";
             this.linkGithub.TabIndex = 15;
             this.linkGithub.TabStop = true;
-            this.linkGithub.Text = "2.4.1";
+            this.linkGithub.Text = "3.0.0";
             this.linkGithub.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.linkGithub.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkGithub_LinkClicked);
             //
