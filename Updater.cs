@@ -8,9 +8,9 @@ namespace WebMCam
 {
     class Updater
     {
-        public static string repositoryUrl = "https://github.com/thetarkus/WebMCam";
-        private static string versionUrl = "https://raw.githubusercontent.com/thetarkus/WebMCam/master/VERSION";
-        private static string downloadPageUrl = "https://github.com/thetarkus/WebMCam/releases";
+        public static string repositoryUrl = "https://github.com/neishwang/WebMCam";
+        private static string versionUrl = "https://raw.githubusercontent.com/neishwang/WebMCam/master/VERSION";
+        private static string downloadPageUrl = "https://github.com/neishwang/WebMCam/releases";
 
         public static async Task CheckAsync(string oldVersionStr)
         {
