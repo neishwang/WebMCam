@@ -1,6 +1,13 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+
+// Normally injected automatically by the SDK for a "-windows" TFM, but that is
+// disabled here (GenerateAssemblyInfo=false) to keep the attributes below as the
+// single source of assembly metadata. Without it, the CA1416 platform-compatibility
+// analyzer treats every WinForms/GDI+ call in the project as unverified.
+[assembly: SupportedOSPlatform("windows")]
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information

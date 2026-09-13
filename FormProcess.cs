@@ -16,6 +16,7 @@ namespace WebMCam
         private string framesPath;
         private string videoCodec;
         private string sText;
+        private bool cancelled;
 
 
         public FormProcess(string framesPath, string videoCodec = "libvpx", int framesCount = -1)
@@ -122,8 +123,10 @@ namespace WebMCam
                 .Replace("{output}", string.Format("-y \"{0}\"", outputLocation));
 
             process.StartInfo = info;
+            process.EnableRaisingEvents = true;
             process.OutputDataReceived += process_DataReceived;
             process.ErrorDataReceived += process_DataReceived;
+            process.Exited += process_Exited;
 
             textBoxData.AppendText("Directory: " + framesPath);
             textBoxData.AppendText(Environment.NewLine);
@@ -199,12 +202,45 @@ namespace WebMCam
         private void buttonCancel_Click(object sender, EventArgs e)
         {
             if (buttonCancel.Text == "Cancel")
+            {
+                cancelled = true;
                 try
                 {
                     process.Kill();
                 }
                 catch { }
+            }
             Close();
+        }
+
+
+        /// <summary>
+        /// Backstop for marking processing as done once FFmpeg actually exits, in case
+        /// the "video:" summary line never gets picked up by textBoxData_TextChanged
+        /// (e.g. it arrives bundled with other output and isn't the last line read).
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void process_Exited(object sender, EventArgs e)
+        {
+            if (cancelled || IsDisposed)
+                return;
+
+            try
+            {
+                Invoke(new MethodInvoker(delegate ()
+                {
+                    if (IsDisposed)
+                        return;
+
+                    progressBar.Value = 100;
+                    buttonOpen.Enabled = true;
+                    buttonCancel.Text = "Done";
+                    Text = string.Format("{0} [100%]", sText);
+                }));
+            }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
         }
 
 
