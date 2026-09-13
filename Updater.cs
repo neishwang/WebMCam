@@ -8,6 +8,7 @@ namespace WebMCam
 {
     class Updater
     {
+        public static string repositoryUrl = "https://github.com/thetarkus/WebMCam";
         private static string versionUrl = "https://raw.githubusercontent.com/thetarkus/WebMCam/master/VERSION";
         private static string downloadPageUrl = "https://github.com/thetarkus/WebMCam/releases";
 
@@ -38,7 +39,7 @@ namespace WebMCam
                     );
 
                     if(result == DialogResult.Yes)
-                        Process.Start(downloadPageUrl);
+                        Shell.Open(downloadPageUrl);
                 }
             }
             catch

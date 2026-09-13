@@ -251,7 +251,7 @@ namespace WebMCam
         /// <param name="e"></param>
         private void buttonOpen_Click(object sender, EventArgs e)
         {
-            Process.Start(outputLocation);
+            Shell.Open(outputLocation);
         }
     }
 }

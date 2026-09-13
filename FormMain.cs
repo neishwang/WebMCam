@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -577,7 +576,7 @@ namespace WebMCam
         /// <param name="e"></param>
         private void linkLabelFFmpeg_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start("https://www.ffmpeg.org/");
+            Shell.Open("https://www.ffmpeg.org/");
         }
 
         /// <summary>
@@ -587,7 +586,7 @@ namespace WebMCam
         /// <param name="e"></param>
         private void linkGithub_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            Process.Start("https://github.com/thetarkus/WebMCam");
+            Shell.Open(Updater.repositoryUrl);
         }
     }
 }
