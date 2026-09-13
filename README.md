@@ -11,6 +11,10 @@ scaled displays (125%, 150%, 200%) that the original build could not handle.
 Releases / Downloads:
 https://github.com/neishwang/WebMCam/releases
 
+Releases are self-contained: **no .NET runtime to install**, and FFmpeg is
+bundled next to the executable, so there is nothing to configure on first run.
+Unzip and run `WebMCam.exe`.
+
 FFmpeg Website:
 https://www.ffmpeg.org/
 
@@ -67,8 +71,16 @@ Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
     dotnet build WebMCam.sln -c Release
 
-FFmpeg is expected at the path configured in Options; a copy ships in
-`Resources/`.
+FFmpeg is not vendored in this repository: the release workflow fetches the
+latest build at packaging time, so a release is never shipping a stale copy.
+For a local build, either drop an `ffmpeg.exe` next to the built executable or
+point Options at one you already have.
+
+Releases are cut by the `Release` workflow, run manually from the Actions tab.
+It reads `VERSION`, refuses to run if that tag already exists or if
+`FormMain.Designer.cs` reports a different version, publishes a self-contained
+win-x64 build, bundles the latest FFmpeg, and uploads the zip to a new GitHub
+release.
 
 
 Screenshots
