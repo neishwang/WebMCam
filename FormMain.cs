@@ -268,9 +268,6 @@ namespace WebMCam
         {
             var format = formOptions.getImageFormat().ToString().ToLower();
             var formProcess = new FormProcess(recorder.tempPath, "", framesCount);
-            string videoCodec = "";
-
-            Console.WriteLine(format);
 
             formProcess.ffmpegPath = FFmpeg.ResolvePath(formOptions.getFFmpegPath());
             formProcess.ffmpegArguments = formOptions.getFFmpegArguments();

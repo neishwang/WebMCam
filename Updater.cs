@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Net;
-using System.Windows.Forms;
-using System.Diagnostics;
+using System.Net.Http;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace WebMCam
 {
@@ -12,35 +11,37 @@ namespace WebMCam
         private static string versionUrl = "https://raw.githubusercontent.com/neishwang/WebMCam/master/VERSION";
         private static string downloadPageUrl = "https://github.com/neishwang/WebMCam/releases";
 
-        public static async Task CheckAsync(string oldVersionStr)
+        private static readonly HttpClient http = new HttpClient
         {
-            await Task.Run(() => Check(oldVersionStr));
-        }
+            Timeout = TimeSpan.FromSeconds(10)
+        };
 
-        public static void Check(string oldVersionStr)
+        public static async Task CheckAsync(string oldVersionStr)
         {
             try
             {
-                var newVersionStr = new WebClient().DownloadString(new Uri(versionUrl)).Trim();
+                var newVersionStr = (await http.GetStringAsync(versionUrl)).Trim();
 
                 var newVersion = new Version(newVersionStr);
                 var oldVersion = new Version(oldVersionStr);
 
-                if(newVersion.CompareTo(oldVersion) > 0)
-                {
-                    var result = MessageBox.Show(
-                        string.Format(
-                            "Version {0} is available for download. You are running version {1}." +
-                            Environment.NewLine + "Would you like to be sent to the download page?",
-                            newVersion, oldVersion
-                        ),
+                if (newVersion.CompareTo(oldVersion) <= 0)
+                    return;
 
-                        "New Version Available", MessageBoxButtons.YesNo, MessageBoxIcon.Question
-                    );
+                // Awaiting resumes on the UI thread, so the dialog belongs here now.
+                // The previous Task.Run wrapper showed it from a thread pool thread.
+                var result = MessageBox.Show(
+                    string.Format(
+                        "Version {0} is available for download. You are running version {1}." +
+                        Environment.NewLine + "Would you like to be sent to the download page?",
+                        newVersion, oldVersion
+                    ),
 
-                    if(result == DialogResult.Yes)
-                        Shell.Open(downloadPageUrl);
-                }
+                    "New Version Available", MessageBoxButtons.YesNo, MessageBoxIcon.Question
+                );
+
+                if (result == DialogResult.Yes)
+                    Shell.Open(downloadPageUrl);
             }
             catch
             {

@@ -97,7 +97,7 @@ class Recorder
                     audioSource.Initialize();
                 }
                 else
-                    throw exception;
+                    throw;
             }
 
             audioFile = new WaveWriter(Path.Combine(tempPath, "audio.wav"), audioSource.WaveFormat);
