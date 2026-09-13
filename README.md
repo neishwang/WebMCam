@@ -72,7 +72,9 @@ Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
     dotnet build WebMCam.sln -c Release
 
 FFmpeg is not vendored in this repository: the release workflow fetches the
-latest build at packaging time, so a release is never shipping a stale copy.
+latest stable build at packaging time, so a release is never shipping a stale
+copy. It picks the highest release branch FFmpeg publishes rather than a master
+nightly, and follows new stable lines on its own.
 For a local build, either drop an `ffmpeg.exe` next to the built executable or
 point Options at one you already have.
 

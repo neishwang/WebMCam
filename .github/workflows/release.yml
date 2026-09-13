@@ -17,12 +17,6 @@ concurrency:
   group: release
   cancel-in-progress: false
 
-env:
-  # BtbN's builds are hosted on GitHub itself, so no rate limits or CDN surprises
-  # in CI. The gpl variant carries libvpx and libvorbis, which is what the default
-  # encoder arguments use.
-  FFMPEG_URL: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
-
 jobs:
   release:
     runs-on: windows-latest
@@ -78,10 +72,44 @@ jobs:
             -p:EnableCompressionInSingleFile=true \
             -o publish
 
-      - name: Bundle the latest FFmpeg
+      # BtbN's builds are hosted on GitHub itself, so no rate limits or CDN
+      # surprises in CI, and the gpl variant carries the libvpx and libvorbis
+      # encoders the default arguments use.
+      #
+      # Their "latest" tag holds both nightly master snapshots and builds of the
+      # stable release branches. Pick the highest release branch rather than
+      # master: a shipped binary should not ride master, and a version like
+      # n9.0.1 is traceable in a bug report where N-126523 is not. Selecting it
+      # dynamically means the next stable line is picked up on its own, instead
+      # of this URL quietly pinning us to an old branch forever.
+      - name: Bundle the latest stable FFmpeg
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          Invoke-WebRequest -Uri $env:FFMPEG_URL -OutFile ffmpeg.zip
+          $release = Invoke-RestMethod `
+            -Uri "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/tags/latest" `
+            -Headers @{ "User-Agent" = "webmcam-release"; "Authorization" = "Bearer $env:GH_TOKEN" }
+
+          $pattern = '^ffmpeg-n(\d+)\.(\d+)-latest-win64-gpl-\d+\.\d+\.zip$'
+          $builds = $release.assets |
+            Where-Object { $_.name -match $pattern } |
+            ForEach-Object {
+              [void]($_.name -match $pattern)
+              [pscustomobject]@{
+                Name    = $_.name
+                Url     = $_.browser_download_url
+                Version = [version]("{0}.{1}" -f $Matches[1], $Matches[2])
+              }
+            } | Sort-Object Version -Descending
+
+          if (-not $builds) { throw "no stable release-branch FFmpeg build in BtbN's latest tag" }
+
+          $pick = $builds[0]
+          Write-Host "Stable branches available: $(($builds.Version | ForEach-Object { $_.ToString() }) -join ', ')"
+          Write-Host "Selected: $($pick.Name)"
+
+          Invoke-WebRequest -Uri $pick.Url -OutFile ffmpeg.zip
           Expand-Archive ffmpeg.zip -DestinationPath ffmpeg-tmp
 
           $exe = Get-ChildItem ffmpeg-tmp -Recurse -Filter ffmpeg.exe | Select-Object -First 1
@@ -95,6 +123,9 @@ jobs:
 
           $banner = (& publish/ffmpeg.exe -version | Select-Object -First 1)
           if (-not $banner) { throw "the bundled ffmpeg.exe did not run" }
+          if ($banner -notmatch 'ffmpeg version n\d') {
+            throw "expected a stable FFmpeg build, got: $banner"
+          }
           "FFMPEG_VERSION=$banner" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "Bundled: $banner"
 
